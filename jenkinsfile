@@ -1,17 +1,38 @@
 pipeline {
     agent any
- stages {
-        stage('Build') {
+
+    environment {
+        TOMCAT_USER = 'admin'    // Tomcat Manager username
+        TOMCAT_PASS = 'password' // Tomcat Manager password
+        TOMCAT_URL  = 'http://localhost:8088/'  // Change this to your Tomcat URL
+    }
+
+    stages {
+        stage('Clone Repository') {
             steps {
-                sh 'mvn clean package'   // Runs Maven build
+                git 'https://github.com/AYUSH7234/exp6.git'  // Replace with your repo
             }
-        
-  post {
-        success {
-            echo "Archiving the Artifacts"
-            archiveArtifacts artifacts: '**target/*.war'
         }
+
+        stage('Build with Maven') {
+            steps {
+                sh 'mvn clean package'  // Builds the WAR file
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                script {
+                    def warFile = findFiles(glob: '**/target/*.war')[0].path
+                    echo "Deploying deploy contextPath: null, war: '**/target/*.war' to Tomcat..."
+                    
+                    sh """
+                    curl -u $TOMCAT_USER:$TOMCAT_PASS \
+                    --upload-file **/target/*.war \
+                    $TOMCAT_URL/manager/text/deploy?path=/your-app-name&update=true
+                    """
+                }
+            }
         }
     }
-stage('Deploy to tomcat server')
-}}
+}
